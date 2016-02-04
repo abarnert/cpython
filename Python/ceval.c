@@ -917,7 +917,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
     { \
         if (!lltrace && !_Py_TracingPossible) { \
             f->f_lasti = INSTR_OFFSET(); \
-            goto *opcode_targets[*next_instr++]; \
+            goto *opcode_targets[NEXTOP()];	\
         } \
         goto fast_next_opcode; \
     }
@@ -926,7 +926,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
     { \
         if (!_Py_TracingPossible) { \
             f->f_lasti = INSTR_OFFSET(); \
-            goto *opcode_targets[*next_instr++]; \
+            goto *opcode_targets[NEXTOP()];	\
         } \
         goto fast_next_opcode; \
     }
@@ -995,9 +995,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 /* Code access macros */
 
 #define INSTR_OFFSET()  ((int)(next_instr - first_instr))
-#define NEXTOP()        (*next_instr++)
-#define NEXTARG()       (next_instr += 2, (next_instr[-1]<<8) + next_instr[-2])
-#define PEEKARG()       ((next_instr[2]<<8) + next_instr[1])
+#define NEXTOP()        (next_instr+=2, next_instr[-2])
+#define NEXTARG()       (next_instr[-1])
+#define PEEKARG()       (next_instr[1])
 #define JUMPTO(x)       (next_instr = first_instr + (x))
 #define JUMPBY(x)       (next_instr += (x))
 
@@ -1034,8 +1034,8 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 #define PREDICTED_WITH_ARG(op)  PRED_##op:
 #else
 #define PREDICT(op)             if (*next_instr == op) goto PRED_##op
-#define PREDICTED(op)           PRED_##op: next_instr++
-#define PREDICTED_WITH_ARG(op)  PRED_##op: oparg = PEEKARG(); next_instr += 3
+#define PREDICTED(op)           PRED_##op: next_instr += 2
+#define PREDICTED_WITH_ARG(op)  PRED_##op: oparg = PEEKARG(); next_instr += 2
 #endif
 
 
@@ -1171,7 +1171,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
        f->f_lasti now refers to the index of the last instruction
        executed.  You might think this was obvious from the name, but
        this wasn't always true before 2.3!  PyFrame_New now sets
-       f->f_lasti to -1 (i.e. the index *before* the first instruction)
+       f->f_lasti to -2 (i.e. the word-index *before* the first instruction)
        and YIELD_VALUE doesn't fiddle with f_lasti any more.  So this
        does work.  Promise.
        YIELD_FROM sets f_lasti to itself, in order to repeated yield
@@ -1185,7 +1185,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
        FOR_ITER is effectively a single opcode and f->f_lasti will point
        at to the beginning of the combined pair.)
     */
-    next_instr = first_instr + f->f_lasti + 1;
+    next_instr = first_instr + f->f_lasti + 2;
     stack_pointer = f->f_stacktop;
     assert(stack_pointer != NULL);
     f->f_stacktop = NULL;       /* remains NULL unless yield suspends frame */
@@ -1323,10 +1323,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
         /* Extract opcode and argument */
 
         opcode = NEXTOP();
-        oparg = 0;   /* allows oparg to be stored in a register because
-            it doesn't have to be remembered across a full loop */
-        if (HAS_ARG(opcode))
-            oparg = NEXTARG();
+        oparg = NEXTARG();
     dispatch_opcode:
 #ifdef DYNAMIC_EXECUTION_PROFILE
 #ifdef DXPAIRS
@@ -2060,7 +2057,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             f->f_stacktop = stack_pointer;
             why = WHY_YIELD;
             /* and repeat... */
-            f->f_lasti--;
+            f->f_lasti-=2;
             goto fast_yield;
         }
 
@@ -3432,7 +3429,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 
         TARGET(EXTENDED_ARG) {
             opcode = NEXTOP();
-            oparg = oparg<<16 | NEXTARG();
+            oparg = oparg<<8 | NEXTARG();
             goto dispatch_opcode;
         }
 
@@ -3442,8 +3439,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 #endif
         default:
             fprintf(stderr,
-                "XXX lineno: %d, opcode: %d\n",
+                "XXX lineno: %d, offset: %d, opcode: %d\n---\n",
                 PyFrame_GetLineNumber(f),
+                INSTR_OFFSET(),
                 opcode);
             PyErr_SetString(PyExc_SystemError, "unknown opcode");
             goto error;

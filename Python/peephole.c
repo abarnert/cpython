@@ -371,6 +371,9 @@ PyCode_Optimize(PyObject *code, PyObject* consts, PyObject *names,
     if (PyErr_Occurred())
         goto exitError;
 
+    /* TODO: Fix peephole optimizer for wordcode. Until then, skip it. */
+    goto exitUnchanged;
+    
     /* Bypass optimization when the lnotab table is too complex */
     assert(PyBytes_Check(lnotab_obj));
     lnotab = (unsigned char*)PyBytes_AS_STRING(lnotab_obj);

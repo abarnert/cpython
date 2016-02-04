@@ -1170,7 +1170,7 @@ compiler_addop_i(struct compiler *c, int opcode, Py_ssize_t oparg)
     struct instr *i;
     int off;
 
-    /* Integer arguments are limit to 16-bit. There is an extension for 32-bit
+    /* Integer arguments are limit to 8-bit. There is an extension for 32-bit
        integer arguments. */
     assert((-2147483647-1) <= oparg);
     assert(oparg <= 2147483647);
@@ -4414,11 +4414,16 @@ assemble_free(struct assembler *a)
 static int
 instrsize(struct instr *instr)
 {
-    if (!instr->i_hasarg)
-        return 1;               /* 1 byte for the opcode*/
-    if (instr->i_oparg > 0xffff)
-        return 6;               /* 1 (opcode) + 1 (EXTENDED_ARG opcode) + 2 (oparg) + 2(oparg extended) */
-    return 3;                   /* 1 (opcode) + 2 (oparg) */
+    /* Every opcode is 16 bits, including 8 bits for the arg. For args
+       that require > 8 bits, one or more EXTENDED_ARG opcodes are used. */
+    if (!instr->i_hasarg || instr->i_oparg <= 0xff)
+        return 2;
+    else if (instr->i_oparg <= 0xffff)
+        return 4;
+    else if (instr->i_oparg <= 0xffffff)
+        return 6;
+    else
+        return 8;
 }
 
 static int
@@ -4548,14 +4553,13 @@ assemble_lnotab(struct assembler *a, struct instr *i)
 static int
 assemble_emit(struct assembler *a, struct instr *i)
 {
-    int size, arg = 0, ext = 0;
+    int size, arg = 0;
     Py_ssize_t len = PyBytes_GET_SIZE(a->a_bytecode);
     char *code;
 
     size = instrsize(i);
     if (i->i_hasarg) {
         arg = i->i_oparg;
-        ext = arg >> 16;
     }
     if (i->i_lineno && !assemble_lnotab(a, i))
         return 0;
@@ -4567,19 +4571,23 @@ assemble_emit(struct assembler *a, struct instr *i)
     }
     code = PyBytes_AS_STRING(a->a_bytecode) + a->a_offset;
     a->a_offset += size;
-    if (size == 6) {
+    if (size > 6) {
         assert(i->i_hasarg);
         *code++ = (char)EXTENDED_ARG;
-        *code++ = ext & 0xff;
-        *code++ = ext >> 8;
-        arg &= 0xffff;
+        *code++ = arg >> 24;
+    }
+    if (size > 4) {
+        assert(i->i_hasarg);
+        *code++ = (char)EXTENDED_ARG;
+        *code++ = (arg >> 16) & 0xff;
+    }
+    if (size > 2) {
+        assert(i->i_hasarg);
+        *code++ = (char)EXTENDED_ARG;
+        *code++ = (arg >> 8) & 0xff;
     }
     *code++ = i->i_opcode;
-    if (i->i_hasarg) {
-        assert(size == 3 || size == 6);
-        *code++ = arg & 0xff;
-        *code++ = arg >> 8;
-    }
+    *code++ = arg & 0xff;
     return 1;
 }
 
@@ -4619,7 +4627,11 @@ assemble_jump_offsets(struct assembler *a, struct compiler *c)
                 }
                 else
                     continue;
+                if (instr->i_oparg > 0xffffff)
+                    extended_arg_count++;
                 if (instr->i_oparg > 0xffff)
+                    extended_arg_count++;
+                if (instr->i_oparg > 0xff)
                     extended_arg_count++;
             }
         }
