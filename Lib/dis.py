@@ -303,11 +303,11 @@ def _get_instructions_bytes(code, varnames=None, names=None, constants=None,
         argval = None
         argrepr = ''
         if op >= HAVE_ARGUMENT:
-            arg = code[i] + code[i+1]*256 + extended_arg
-            extended_arg = 0
-            i = i+2
+            arg = code[i] + extended_arg
             if op == EXTENDED_ARG:
-                extended_arg = arg*65536
+                extended_arg = op << 8
+            else:
+                extended_arg = 0
             #  Set argval to the dereferenced value of the argument when
             #  availabe, and argrepr to the string representation of argval.
             #    _disassemble_bytes needs the string repr of the
@@ -329,6 +329,9 @@ def _get_instructions_bytes(code, varnames=None, names=None, constants=None,
                 argval, argrepr = _get_name_info(arg, cells)
             elif op in hasnargs:
                 argrepr = "%d positional, %d keyword pair" % (code[i-2], code[i-1])
+        else:
+            extended_arg = 0
+        i = i+1
         yield Instruction(opname[op], op,
                           arg, argval, argrepr,
                           offset, starts_line, is_jump_target)
@@ -374,13 +377,17 @@ def findlabels(code):
     # enumerate() is not an option, since we sometimes process
     # multiple elements on a single pass through the loop
     n = len(code)
+    extended_arg = 0
     i = 0
     while i < n:
         op = code[i]
         i = i+1
         if op >= HAVE_ARGUMENT:
-            arg = code[i] + code[i+1]*256
-            i = i+2
+            arg = code[i] + extended_arg
+            i = i+1
+            if op == EXTENDED_ARG:
+                extended_arg = op << 8
+                continue
             label = -1
             if op in hasjrel:
                 label = i+arg
@@ -389,6 +396,7 @@ def findlabels(code):
             if label >= 0:
                 if label not in labels:
                     labels.append(label)
+        extended_arg = 0
     return labels
 
 def findlinestarts(code):
