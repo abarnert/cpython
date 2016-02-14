@@ -20,9 +20,7 @@
 #define GETJUMPTGT(arr, i) (GETARG(arr,i) + (ABSOLUTE_JUMP(arr[i]) ? 0 : i+2))
 #define SETOPARG(arr, i, op, val) do {                \
     assert(0 <= op && op <= 0xff);                    \
-    assert(0 <= val && val <= 0xff);                  \
     arr[i] = (unsigned char)(op);                     \
-    arr[i+1] = (unsigned char)(val);                  \
     SETARG(arr, i, val);                              \
 } while(0)
 #define SETARG(arr, i, val) do {                      \
@@ -329,7 +327,7 @@ markblocks(unsigned char *code, Py_ssize_t len)
         }
     }
     /* Build block numbers in the second pass */
-    for (i=0 ; i<len ; i++) {
+    for (i=0 ; i<len ; i+=2) {
         blockcnt += blocks[i];          /* increment blockcnt over labels */
         blocks[i] = blockcnt;
     }
