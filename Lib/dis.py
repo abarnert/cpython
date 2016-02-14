@@ -282,15 +282,11 @@ def _get_instructions_bytes(code, varnames=None, names=None, constants=None,
     arguments.
 
     """
-    labels = findlabels(code)
+    labels = set(findlabels(code))
     extended_arg = 0
     starts_line = None
     free = None
-    # enumerate() is not an option, since we sometimes process
-    # multiple elements on a single pass through the loop
-    n = len(code)
-    i = 0
-    while i < n:
+    for i in range(0, len(code), 2):
         op = code[i]
         offset = i
         if linestarts is not None:
@@ -298,11 +294,10 @@ def _get_instructions_bytes(code, varnames=None, names=None, constants=None,
             if starts_line is not None:
                 starts_line += line_offset
         is_jump_target = i in labels
-        i += 1
         argrepr = ''
-        argval = arg = code[i] + extended_arg
+        argval = arg = code[i+1] + extended_arg
         if op == EXTENDED_ARG:
-            extended_arg = extended_arg << 8 + code[i]
+            extended_arg = arg << 8
         else:
             extended_arg = 0
         #  Set argval to the dereferenced value of the argument when
@@ -325,7 +320,6 @@ def _get_instructions_bytes(code, varnames=None, names=None, constants=None,
             argval, argrepr = _get_name_info(arg, cells)
         elif op in hasnargs:
             argrepr = "%d positional, %d keyword pair" % (arg&255, arg>>8)
-        i += 1
         yield Instruction(opname[op], op,
                           arg, argval, argrepr,
                           offset, starts_line, is_jump_target)
@@ -368,24 +362,17 @@ def findlabels(code):
 
     """
     labels = []
-    # enumerate() is not an option, since we sometimes process
-    # multiple elements on a single pass through the loop
-    n = len(code)
     extended_arg = 0
-    i = 0
-    while i < n:
+    for i in range(0, len(code), 2):
         op = code[i]
         arg = code[i+1] + extended_arg
-        i += 2
         if op == EXTENDED_ARG:
-            extended_arg = extend_arg << 8 | code[i-1] << 8
+            extended_arg = arg << 8
             continue
-        label = -1
-        if op in hasjrel:
-            label = i+arg
-        elif op in hasjabs:
-            label = arg
-        if label >= 0 and label not in labels:
+        label = (i+arg if op in hasjrel
+            else arg if op in hasjabs
+            else None)
+        if label is not None and label not in labels:
             labels.append(label)
         extended_arg = 0
     return labels

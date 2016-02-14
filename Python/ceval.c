@@ -1029,11 +1029,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 #if defined(DYNAMIC_EXECUTION_PROFILE) || USE_COMPUTED_GOTOS
 #define PREDICT(op)             if (0) goto PRED_##op
 #define PREDICTED(op)           PRED_##op:
-#define PREDICTED_WITH_ARG(op)  PRED_##op:
 #else
 #define PREDICT(op)             if (*next_instr == op) goto PRED_##op
-#define PREDICTED(op)           PRED_##op: next_instr += 2
-#define PREDICTED_WITH_ARG(op)  PRED_##op: oparg = PEEKARG(); next_instr += 2
+#define PREDICTED(op)           PRED_##op: oparg = PEEKARG(); next_instr += 2
 #endif
 
 
@@ -1373,7 +1371,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             FAST_DISPATCH();
         }
 
-        PREDICTED_WITH_ARG(STORE_FAST);
+        PREDICTED(STORE_FAST);
         TARGET(STORE_FAST) {
             PyObject *value = POP();
             SETLOCAL(oparg, value);
@@ -2187,7 +2185,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             DISPATCH();
         }
 
-        PREDICTED_WITH_ARG(UNPACK_SEQUENCE);
+        PREDICTED(UNPACK_SEQUENCE);
         TARGET(UNPACK_SEQUENCE) {
             PyObject *seq = POP(), *item, **items;
             if (PyTuple_CheckExact(seq) &&
@@ -2793,7 +2791,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             FAST_DISPATCH();
         }
 
-        PREDICTED_WITH_ARG(POP_JUMP_IF_FALSE);
+        PREDICTED(POP_JUMP_IF_FALSE);
         TARGET(POP_JUMP_IF_FALSE) {
             PyObject *cond = POP();
             int err;
@@ -2817,7 +2815,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             DISPATCH();
         }
 
-        PREDICTED_WITH_ARG(POP_JUMP_IF_TRUE);
+        PREDICTED(POP_JUMP_IF_TRUE);
         TARGET(POP_JUMP_IF_TRUE) {
             PyObject *cond = POP();
             int err;
@@ -2894,7 +2892,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             DISPATCH();
         }
 
-        PREDICTED_WITH_ARG(JUMP_ABSOLUTE);
+        PREDICTED(JUMP_ABSOLUTE);
         TARGET(JUMP_ABSOLUTE) {
             JUMPTO(oparg);
 #if FAST_LOOPS
@@ -2951,7 +2949,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             DISPATCH();
         }
 
-        PREDICTED_WITH_ARG(FOR_ITER);
+        PREDICTED(FOR_ITER);
         TARGET(FOR_ITER) {
             /* before: [iter]; after: [iter, iter()] *or* [] */
             PyObject *iter = TOP();

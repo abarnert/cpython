@@ -43,7 +43,6 @@
 struct instr {
     unsigned i_jabs : 1;
     unsigned i_jrel : 1;
-    unsigned i_hasarg : 1;
     unsigned char i_opcode;
     int i_oparg;
     struct basicblock_ *i_target; /* target block (if jump instruction) */
@@ -1093,7 +1092,7 @@ compiler_addop(struct compiler *c, int opcode)
     b = c->u->u_curblock;
     i = &b->b_instr[off];
     i->i_opcode = opcode;
-    i->i_hasarg = 0;
+    i->i_oparg = 0;
     if (opcode == RETURN_VALUE)
         b->b_return = 1;
     compiler_set_lineno(c, off);
@@ -1181,7 +1180,6 @@ compiler_addop_i(struct compiler *c, int opcode, Py_ssize_t oparg)
     i = &c->u->u_curblock->b_instr[off];
     i->i_opcode = opcode;
     i->i_oparg = Py_SAFE_DOWNCAST(oparg, Py_ssize_t, int);
-    i->i_hasarg = 1;
     compiler_set_lineno(c, off);
     return 1;
 }
@@ -1199,7 +1197,6 @@ compiler_addop_j(struct compiler *c, int opcode, basicblock *b, int absolute)
     i = &c->u->u_curblock->b_instr[off];
     i->i_opcode = opcode;
     i->i_target = b;
-    i->i_hasarg = 1;
     if (absolute)
         i->i_jabs = 1;
     else
@@ -4416,7 +4413,7 @@ instrsize(struct instr *instr)
 {
     /* Every opcode is 16 bits, including 8 bits for the arg. For args
        that require > 8 bits, one or more EXTENDED_ARG opcodes are used. */
-    if (!instr->i_hasarg || instr->i_oparg <= 0xff)
+    if (instr->i_oparg <= 0xff)
         return 2;
     else if (instr->i_oparg <= 0xffff)
         return 4;
@@ -4558,9 +4555,7 @@ assemble_emit(struct assembler *a, struct instr *i)
     char *code;
 
     size = instrsize(i);
-    if (i->i_hasarg) {
-        arg = i->i_oparg;
-    }
+    arg = i->i_oparg;
     if (i->i_lineno && !assemble_lnotab(a, i))
         return 0;
     if (a->a_offset + size >= len) {
@@ -4571,23 +4566,14 @@ assemble_emit(struct assembler *a, struct instr *i)
     }
     code = PyBytes_AS_STRING(a->a_bytecode) + a->a_offset;
     a->a_offset += size;
-    if (size > 6) {
-        assert(i->i_hasarg);
-        *code++ = (char)EXTENDED_ARG;
-        *code++ = arg >> 24;
+    code[size-2] = i->i_opcode;
+    code[size-1] = arg & 0xff;
+    while (size > 2) {
+        size -= 2;
+        arg >>= 8;
+        code[size-2] = (char)EXTENDED_ARG;
+        code[size-1] = arg & 0xff;
     }
-    if (size > 4) {
-        assert(i->i_hasarg);
-        *code++ = (char)EXTENDED_ARG;
-        *code++ = (arg >> 16) & 0xff;
-    }
-    if (size > 2) {
-        assert(i->i_hasarg);
-        *code++ = (char)EXTENDED_ARG;
-        *code++ = (arg >> 8) & 0xff;
-    }
-    *code++ = i->i_opcode;
-    *code++ = arg & 0xff;
     return 1;
 }
 
@@ -4793,14 +4779,9 @@ dump_instr(const struct instr *i)
 {
     const char *jrel = i->i_jrel ? "jrel " : "";
     const char *jabs = i->i_jabs ? "jabs " : "";
-    char arg[128];
 
-    *arg = '\0';
-    if (i->i_hasarg)
-        sprintf(arg, "arg: %d ", i->i_oparg);
-
-    fprintf(stderr, "line: %d, opcode: %d %s%s%s\n",
-                    i->i_lineno, i->i_opcode, arg, jabs, jrel);
+    fprintf(stderr, "line: %d, opcode: %d, arg: %d, %s%s\n",
+                    i->i_lineno, i->i_opcode, i->i_oparg jabs, jrel);
 }
 
 static void
