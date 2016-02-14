@@ -176,54 +176,54 @@ while 1:
 
 dis_compound_stmt_str = """\
   1           0 LOAD_CONST               0 (0)
-              3 STORE_NAME               0 (x)
+              2 STORE_NAME               0 (x)
 
-  2           6 SETUP_LOOP              14 (to 23)
+  2           4 SETUP_LOOP              14 (to 18)
 
-  3     >>    9 LOAD_NAME                0 (x)
-             12 LOAD_CONST               1 (1)
-             15 INPLACE_ADD
-             16 STORE_NAME               0 (x)
-             19 JUMP_ABSOLUTE            9
-             22 POP_BLOCK
-        >>   23 LOAD_CONST               2 (None)
-             26 RETURN_VALUE
+  3     >>    6 LOAD_NAME                0 (x)
+              8 LOAD_CONST               1 (1)
+             10 INPLACE_ADD
+             12 STORE_NAME               0 (x)
+             14 JUMP_ABSOLUTE            6
+             16 POP_BLOCK
+        >>   18 LOAD_CONST               2 (None)
+             20 RETURN_VALUE
 """
 
 dis_traceback = """\
- %-4d         0 SETUP_EXCEPT            12 (to 15)
+ %-4d         0 SETUP_EXCEPT            12 (to 14)
 
- %-4d         3 LOAD_CONST               1 (1)
-              6 LOAD_CONST               2 (0)
-    -->       9 BINARY_TRUE_DIVIDE
-             10 POP_TOP
-             11 POP_BLOCK
-             12 JUMP_FORWARD            46 (to 61)
+ %-4d         2 LOAD_CONST               1 (1)
+              4 LOAD_CONST               2 (0)
+    -->       6 BINARY_TRUE_DIVIDE
+              8 POP_TOP
+             10 POP_BLOCK
+             12 JUMP_FORWARD            46 (to 54)
 
- %-4d   >>   15 DUP_TOP
+ %-4d   >>   14 DUP_TOP
              16 LOAD_GLOBAL              0 (Exception)
-             19 COMPARE_OP              10 (exception match)
-             22 POP_JUMP_IF_FALSE       60
-             25 POP_TOP
-             26 STORE_FAST               0 (e)
-             29 POP_TOP
-             30 SETUP_FINALLY           14 (to 47)
+             18 COMPARE_OP              10 (exception match)
+             20 POP_JUMP_IF_FALSE       60
+             22 POP_TOP
+             24 STORE_FAST               0 (e)
+             26 POP_TOP
+             28 SETUP_FINALLY           14 (to 42)
 
- %-4d        33 LOAD_FAST                0 (e)
-             36 LOAD_ATTR                1 (__traceback__)
-             39 STORE_FAST               1 (tb)
-             42 POP_BLOCK
-             43 POP_EXCEPT
-             44 LOAD_CONST               0 (None)
-        >>   47 LOAD_CONST               0 (None)
-             50 STORE_FAST               0 (e)
-             53 DELETE_FAST              0 (e)
-             56 END_FINALLY
-             57 JUMP_FORWARD             1 (to 61)
-        >>   60 END_FINALLY
+ %-4d        30 LOAD_FAST                0 (e)
+             32 LOAD_ATTR                1 (__traceback__)
+             34 STORE_FAST               1 (tb)
+             36 POP_BLOCK
+             38 POP_EXCEPT
+             40 LOAD_CONST               0 (None)
+        >>   42 LOAD_CONST               0 (None)
+             44 STORE_FAST               0 (e)
+             46 DELETE_FAST              0 (e)
+             48 END_FINALLY
+             50 JUMP_FORWARD             1 (to 54)
+        >>   52 END_FINALLY
 
- %-4d   >>   61 LOAD_FAST                1 (tb)
-             64 RETURN_VALUE
+ %-4d   >>   54 LOAD_FAST                1 (tb)
+             56 RETURN_VALUE
 """ % (TRACEBACK_CODE.co_firstlineno + 1,
        TRACEBACK_CODE.co_firstlineno + 2,
        TRACEBACK_CODE.co_firstlineno + 3,
@@ -267,7 +267,6 @@ class DisTests(unittest.TestCase):
 
     def test_boundaries(self):
         self.assertEqual(dis.opmap["EXTENDED_ARG"], dis.EXTENDED_ARG)
-        self.assertEqual(dis.opmap["STORE_NAME"], dis.HAVE_ARGUMENT)
 
     def test_dis(self):
         self.do_disassembly_test(_f, dis_f)

@@ -1011,12 +1011,6 @@ the more significant byte last.
    .. versionadded:: 3.6
 
 
-.. opcode:: HAVE_ARGUMENT
-
-   This is not really an opcode.  It identifies the dividing line between
-   opcodes which don't take arguments ``< HAVE_ARGUMENT`` and those which do
-   ``>= HAVE_ARGUMENT``.
-
 .. _opcode_collections:
 
 Opcode collections

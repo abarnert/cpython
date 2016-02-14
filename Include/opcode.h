@@ -64,7 +64,6 @@ extern "C" {
 #define POP_BLOCK                87
 #define END_FINALLY              88
 #define POP_EXCEPT               89
-#define HAVE_ARGUMENT            90
 #define STORE_NAME               90
 #define DELETE_NAME              91
 #define UNPACK_SEQUENCE          92
@@ -134,8 +133,6 @@ extern "C" {
 enum cmp_op {PyCmp_LT=Py_LT, PyCmp_LE=Py_LE, PyCmp_EQ=Py_EQ, PyCmp_NE=Py_NE,
                 PyCmp_GT=Py_GT, PyCmp_GE=Py_GE, PyCmp_IN, PyCmp_NOT_IN,
                 PyCmp_IS, PyCmp_IS_NOT, PyCmp_EXC_MATCH, PyCmp_BAD};
-
-#define HAS_ARG(op) ((op) >= HAVE_ARGUMENT)
 
 #ifdef __cplusplus
 }

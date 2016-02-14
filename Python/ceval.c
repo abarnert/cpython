@@ -891,16 +891,14 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 #define TARGET_WITH_IMPL(op, impl) \
     TARGET_##op: \
         opcode = op; \
-        if (HAS_ARG(op)) \
-            oparg = NEXTARG(); \
+        oparg = NEXTARG(); \
     case op: \
         goto impl; \
 
 #define TARGET(op) \
     TARGET_##op: \
         opcode = op; \
-        if (HAS_ARG(op)) \
-            oparg = NEXTARG(); \
+        oparg = NEXTARG(); \
     case op:
 
 
@@ -1012,10 +1010,10 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
     processor's own internal branch predication has a high likelihood of
     success, resulting in a nearly zero-overhead transition to the
     next opcode.  A successful prediction saves a trip through the eval-loop
-    including its two unpredictable branches, the HAS_ARG test and the
-    switch-case.  Combined with the processor's internal branch prediction,
-    a successful PREDICT has the effect of making the two opcodes run as if
-    they were a single new opcode with the bodies combined.
+    including its unpredictable switch-case branch.  Combined with the
+    processor's internal branch prediction, a successful PREDICT has the
+    effect of making the two opcodes run as if they were a single new opcode
+    with the bodies combined.
 
     If collecting opcode statistics, your choices are to either keep the
     predictions turned-on and interpret the results as if some opcodes
@@ -1337,14 +1335,8 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
         /* Instruction tracing */
 
         if (lltrace) {
-            if (HAS_ARG(opcode)) {
-                printf("%d: %d, %d\n",
-                       f->f_lasti, opcode, oparg);
-            }
-            else {
-                printf("%d: %d\n",
-                       f->f_lasti, opcode);
-            }
+            printf("%d: %d, %d\n",
+                   f->f_lasti, opcode, oparg);
         }
 #endif
 

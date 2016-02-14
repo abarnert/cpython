@@ -23,7 +23,7 @@
     arr[i+2] = (unsigned char)(((unsigned int)val)>>8);     \
     arr[i+1] = (unsigned char)(((unsigned int)val) & 255);  \
 } while(0)
-#define CODESIZE(op)  (HAS_ARG(op) ? 3 : 1)
+#define CODESIZE(op)  2
 #define ISBASICBLOCK(blocks, start, bytes) \
     (blocks[start]==blocks[start+bytes-1])
 
