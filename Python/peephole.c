@@ -234,7 +234,6 @@ fold_binops_on_constants(unsigned char *codestr, PyObject *consts, PyObject **ob
     }
     Py_DECREF(newconst);
 
-    /* Write NOP NOP LOAD_CONST newconst */
     SETOPARG(codestr, 0, LOAD_CONST, len_consts);
     return 1;
 }
@@ -286,9 +285,8 @@ fold_unaryops_on_constants(unsigned char *loadcodestr, unsigned char *unarycodes
     }
     Py_DECREF(newconst);
 
-    /* Write NOP LOAD_CONST newconst */
     SETOPARG(unarycodestr, 0, NOP, 0);
-    SETOPARG(loadcodestr, 0, LOAD_CONST, len_consts);
+    SETARG(loadcodestr, 0, len_consts);
     return 1;
 }
 
@@ -475,8 +473,8 @@ PyCode_Optimize(PyObject *code, PyObject* consts, PyObject *names,
                 CONST_STACK_RESET();
                 break;
 
-                /* Try to fold tuples of constants (includes a case for lists and sets
-                   which are only used for "in" and "not in" tests).
+                /* Try to fold tuples of constants (includes a case for lists
+                   and sets which are only used for "in" and "not in" tests).
                    Skip over BUILD_SEQN 1 UNPACK_SEQN 1.
                    Replace BUILD_SEQN 2 UNPACK_SEQN 2 with ROT2.
                    Replace BUILD_SEQN 3 UNPACK_SEQN 3 with ROT3 ROT2. */
@@ -559,9 +557,8 @@ PyCode_Optimize(PyObject *code, PyObject* consts, PyObject *names,
                 if (h >= 0 &&
                     ISBASICBLOCK(blocks, h, i-h+2) &&
                     fold_unaryops_on_constants(codestr+h, codestr+i, consts, CONST_STACK_TOP())) {
-                    assert(codestr[i] == LOAD_CONST);
                     CONST_STACK_POP(1);
-                    CONST_STACK_PUSH_OP(i);
+                    CONST_STACK_PUSH_OP(h);
                 }
                 break;
 
