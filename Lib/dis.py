@@ -288,7 +288,8 @@ def _get_instructions_bytes(code, varnames=None, names=None, constants=None,
     free = None
     for i in range(0, len(code), 2):
         op = code[i]
-        offset = i
+        if extended_arg == 0:
+            offset = i
         if linestarts is not None:
             starts_line = linestarts.get(i, None)
             if starts_line is not None:
@@ -298,6 +299,7 @@ def _get_instructions_bytes(code, varnames=None, names=None, constants=None,
         argval = arg = code[i+1] + extended_arg
         if op == EXTENDED_ARG:
             extended_arg = arg << 8
+            continue
         else:
             extended_arg = 0
         #  Set argval to the dereferenced value of the argument when
