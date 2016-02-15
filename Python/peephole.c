@@ -451,7 +451,7 @@ PyCode_Optimize(PyObject *code, PyObject* consts, PyObject *names,
                 */
             case COMPARE_OP:
                 j = GETARG(codestr, i);
-                if (j < 4 || j > 6 ||
+                if (j < 6 || j > 10 ||
                     codestr[i+2] != UNARY_NOT ||
                     !ISBASICBLOCK(blocks,i,4))
                     continue;
