@@ -29,7 +29,7 @@ _PyGen_Finalize(PyObject *self)
     if (gen->gi_code != NULL
             && ((PyCodeObject *)gen->gi_code)->co_flags & CO_COROUTINE
             && gen->gi_frame != NULL
-            && gen->gi_frame->f_lasti == -1
+            && gen->gi_frame->f_lasti < 0
             && !PyErr_Occurred()
             && PyErr_WarnFormat(PyExc_RuntimeWarning, 1,
                                 "coroutine '%.50S' was never awaited",
@@ -98,7 +98,7 @@ gen_send_ex(PyGenObject *gen, PyObject *arg, int exc)
         return NULL;
     }
 
-    if (f->f_lasti == -1) {
+    if (f->f_lasti < 0) {
         if (arg && arg != Py_None) {
             char *msg = "can't send non-None value to a "
                         "just-started generator";
@@ -268,7 +268,7 @@ gen_yf(PyGenObject *gen)
         PyObject *bytecode = f->f_code->co_code;
         unsigned char *code = (unsigned char *)PyBytes_AS_STRING(bytecode);
 
-        if (code[f->f_lasti + 1] != YIELD_FROM)
+        if (code[f->f_lasti + 2] != YIELD_FROM)
             return NULL;
         yf = f->f_stacktop[-1];
         Py_INCREF(yf);
@@ -367,7 +367,7 @@ gen_throw(PyGenObject *gen, PyObject *args)
             assert(ret == yf);
             Py_DECREF(ret);
             /* Termination repetition of YIELD_FROM */
-            gen->gi_frame->f_lasti++;
+            gen->gi_frame->f_lasti+=2;
             if (_PyGen_FetchStopIterationValue(&val) == 0) {
                 ret = gen_send_ex(gen, val, 0);
                 Py_DECREF(val);

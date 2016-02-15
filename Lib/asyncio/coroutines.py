@@ -174,7 +174,7 @@ class CoroWrapper:
         frame = getattr(gen, 'gi_frame', None)
         if frame is None:
             frame = getattr(gen, 'cr_frame', None)
-        if frame is not None and frame.f_lasti == -1:
+        if frame is not None and frame.f_lasti < 0:
             msg = '%r was never yielded from' % self
             tb = getattr(self, '_source_traceback', ())
             if tb:
