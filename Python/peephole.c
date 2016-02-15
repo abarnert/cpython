@@ -330,6 +330,7 @@ markblocks(unsigned char *code, Py_ssize_t len)
     for (i=0 ; i<len ; i+=2) {
         blockcnt += blocks[i];          /* increment blockcnt over labels */
         blocks[i] = blockcnt;
+        blocks[i+1] = blockcnt;
     }
     return blocks;
 }
