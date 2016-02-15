@@ -14,11 +14,11 @@ with warnings.catch_warnings():
     import imp
 
 # XXX Clean up once str8's cstor matches bytes.
-LOAD_CONST = bytes([dis.opname.index('LOAD_CONST')])
-IMPORT_NAME = bytes([dis.opname.index('IMPORT_NAME')])
-STORE_NAME = bytes([dis.opname.index('STORE_NAME')])
-STORE_GLOBAL = bytes([dis.opname.index('STORE_GLOBAL')])
-STORE_OPS = [STORE_NAME, STORE_GLOBAL]
+LOAD_CONST = bytes([dis.opmap['LOAD_CONST']])
+IMPORT_NAME = bytes([dis.opmap['IMPORT_NAME']])
+STORE_NAME = bytes([dis.opmap['STORE_NAME']])
+STORE_GLOBAL = bytes([dis.opmap['STORE_GLOBAL']])
+STORE_OPS = STORE_NAME, STORE_GLOBAL
 
 # Modulefinder does a good job at simulating Python's, but it can not
 # handle __path__ modifications packages make at runtime.  Therefore there
@@ -347,18 +347,16 @@ class ModuleFinder:
         while code:
             c = bytes([code[0]])
             if c in STORE_OPS:
-                oparg, = code[1]
+                oparg = code[1]
                 yield "store", (names[oparg],)
-                code = code[2:]
-                continue
-            if code[:6:2] == LOAD_LOAD_AND_IMPORT:
-                oparg_1, oparg_2, oparg_3 = unpack('<xHxHxH', code[:9])
+            elif code[:6:2] == LOAD_LOAD_AND_IMPORT:
+                oparg_1, oparg_2, oparg_3 = code[1:6:2]
                 level = consts[oparg_1]
                 if level == 0: # absolute import
                     yield "absolute_import", (consts[oparg_2], names[oparg_3])
                 else: # relative import
                     yield "relative_import", (level, consts[oparg_2], names[oparg_3])
-                code = code[9:]
+                code = code[6:]
                 continue
             code = code[2:]
 
