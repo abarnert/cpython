@@ -2613,20 +2613,19 @@ compiler_visit_stmt_expr(struct compiler *c, expr_ty value)
         return 1;
     }
 
-    if (value->kind == Str_kind || value->kind == Num_kind) {
-        /* ignore strings and numbers */
+    switch (value->kind)
+    {
+    case Str_kind:
+    case Num_kind:
+    case Ellipsis_kind:
+    case Bytes_kind:
+    case NameConstant_kind:
+    case Constant_kind:
+        /* ignore constant statement */
         return 1;
-    }
 
-    if (value->kind == Constant_kind) {
-        PyObject *cst = value->v.Constant.value;
-        if (PyUnicode_CheckExact(cst)
-            || PyLong_CheckExact(cst)
-            || PyFloat_CheckExact(cst)
-            || PyComplex_CheckExact(cst)) {
-            /* ignore strings and numbers */
-            return 1;
-        }
+    default:
+        break;
     }
 
     VISIT(c, expr, value);

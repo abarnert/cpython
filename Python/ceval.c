@@ -3370,7 +3370,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             int have_fmt_spec = (oparg & FVS_MASK) == FVS_HAVE_SPEC;
 
             fmt_spec = have_fmt_spec ? POP() : NULL;
-            value = TOP();
+            value = POP();
 
             /* See if any conversion is specified. */
             switch (which_conversion) {
@@ -3386,10 +3386,10 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             /* If there's a conversion function, call it and replace
                value with that result. Otherwise, just use value,
                without conversion. */
-            if (conv_fn) {
+            if (conv_fn != NULL) {
                 result = conv_fn(value);
                 Py_DECREF(value);
-                if (!result) {
+                if (result == NULL) {
                     Py_XDECREF(fmt_spec);
                     goto error;
                 }
@@ -3409,11 +3409,12 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                 result = PyObject_Format(value, fmt_spec);
                 Py_DECREF(value);
                 Py_XDECREF(fmt_spec);
-                if (!result)
+                if (result == NULL) {
                     goto error;
+                }
             }
 
-            SET_TOP(result);
+            PUSH(result);
             DISPATCH();
         }
 

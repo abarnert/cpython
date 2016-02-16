@@ -790,10 +790,10 @@ class WalkTests(unittest.TestCase):
 
     # Wrapper to hide minor differences between os.walk and os.fwalk
     # to tests both functions with the same code base
-    def walk(self, directory, **kwargs):
+    def walk(self, top, **kwargs):
         if 'follow_symlinks' in kwargs:
             kwargs['followlinks'] = kwargs.pop('follow_symlinks')
-        return os.walk(directory, **kwargs)
+        return os.walk(top, **kwargs)
 
     def setUp(self):
         join = os.path.join
@@ -944,10 +944,9 @@ class WalkTests(unittest.TestCase):
 class FwalkTests(WalkTests):
     """Tests for os.fwalk()."""
 
-    def walk(self, directory, **kwargs):
-        for root, dirs, files, root_fd in os.fwalk(directory, **kwargs):
+    def walk(self, top, **kwargs):
+        for root, dirs, files, root_fd in os.fwalk(top, **kwargs):
             yield (root, dirs, files)
-
 
     def _compare_to_walk(self, walk_kwargs, fwalk_kwargs):
         """
@@ -1018,6 +1017,19 @@ class FwalkTests(WalkTests):
                 else:
                     os.unlink(name, dir_fd=rootfd)
         os.rmdir(support.TESTFN)
+
+class BytesWalkTests(WalkTests):
+    """Tests for os.walk() with bytes."""
+    def walk(self, top, **kwargs):
+        if 'follow_symlinks' in kwargs:
+            kwargs['followlinks'] = kwargs.pop('follow_symlinks')
+        for broot, bdirs, bfiles in os.walk(os.fsencode(top), **kwargs):
+            root = os.fsdecode(broot)
+            dirs = list(map(os.fsdecode, bdirs))
+            files = list(map(os.fsdecode, bfiles))
+            yield (root, dirs, files)
+            bdirs[:] = list(map(os.fsencode, dirs))
+            bfiles[:] = list(map(os.fsencode, files))
 
 
 class MakedirTests(unittest.TestCase):
@@ -2796,6 +2808,8 @@ class ExportsTests(unittest.TestCase):
 
 
 class TestScandir(unittest.TestCase):
+    check_no_resource_warning = support.check_no_resource_warning
+
     def setUp(self):
         self.path = os.path.realpath(support.TESTFN)
         self.addCleanup(support.rmtree, self.path)
@@ -3017,6 +3031,56 @@ class TestScandir(unittest.TestCase):
     def test_bad_path_type(self):
         for obj in [1234, 1.234, {}, []]:
             self.assertRaises(TypeError, os.scandir, obj)
+
+    def test_close(self):
+        self.create_file("file.txt")
+        self.create_file("file2.txt")
+        iterator = os.scandir(self.path)
+        next(iterator)
+        iterator.close()
+        # multiple closes
+        iterator.close()
+        with self.check_no_resource_warning():
+            del iterator
+
+    def test_context_manager(self):
+        self.create_file("file.txt")
+        self.create_file("file2.txt")
+        with os.scandir(self.path) as iterator:
+            next(iterator)
+        with self.check_no_resource_warning():
+            del iterator
+
+    def test_context_manager_close(self):
+        self.create_file("file.txt")
+        self.create_file("file2.txt")
+        with os.scandir(self.path) as iterator:
+            next(iterator)
+            iterator.close()
+
+    def test_context_manager_exception(self):
+        self.create_file("file.txt")
+        self.create_file("file2.txt")
+        with self.assertRaises(ZeroDivisionError):
+            with os.scandir(self.path) as iterator:
+                next(iterator)
+                1/0
+        with self.check_no_resource_warning():
+            del iterator
+
+    def test_resource_warning(self):
+        self.create_file("file.txt")
+        self.create_file("file2.txt")
+        iterator = os.scandir(self.path)
+        next(iterator)
+        with self.assertWarns(ResourceWarning):
+            del iterator
+            support.gc_collect()
+        # exhausted iterator
+        iterator = os.scandir(self.path)
+        list(iterator)
+        with self.check_no_resource_warning():
+            del iterator
 
 
 if __name__ == "__main__":

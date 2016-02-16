@@ -62,7 +62,7 @@ Summary -- Release highlights
 .. This section singles out the most important changes in Python 3.6.
    Brevity is key.
 
-* None yet.
+* PEP 498: :ref:`Formatted string literals <whatsnew-fstrings>`
 
 .. PEP-sized items next.
 
@@ -78,6 +78,24 @@ Summary -- Release highlights
 
     :pep:`4XX` - Python Virtual Environments
        PEP written by Carl Meyer
+
+
+.. _whatsnew-fstrings:
+
+PEP 498: Formatted string literals
+----------------------------------
+
+Formatted string literals are a new kind of string literal, prefixed
+with ``'f'``.  They are similar to the format strings accepted by
+:meth:`str.format`.  They contain replacement fields surrounded by
+curly braces.  The replacement fields are expressions, which are
+evaluated at run time, and then formatted using the :func:`format` protocol.
+
+    >>> name = "Fred"
+    >>> f"He said his name is {name}."
+    'He said his name is Fred.'
+
+See :pep:`498` and the main documentation at :ref:`f-strings`.
 
 
 Other Language Changes
@@ -102,6 +120,17 @@ The :meth:`datetime.strftime() <datetime.datetime.strftime>` and
 :meth:`date.strftime() <datetime.date.strftime>` methods now support ISO 8601 date
 directives ``%G``, ``%u`` and ``%V``.
 (Contributed by Ashley Anderson in :issue:`12006`.)
+
+
+os
+--
+
+A new :meth:`~os.scandir.close` method allows explicitly closing a
+:func:`~os.scandir` iterator.  The :func:`~os.scandir` iterator now
+supports the :term:`context manager` protocol.  If a :func:`scandir`
+iterator is neither exhausted nor explicitly closed a :exc:`ResourceWarning`
+will be emitted in its destructor.
+(Contributed by Serhiy Storchaka in :issue:`25994`.)
 
 
 pickle
@@ -138,6 +167,23 @@ urllib.robotparser
 :class:`~urllib.robotparser.RobotFileParser` now supports the ``Crawl-delay`` and
 ``Request-rate`` extensions.
 (Contributed by Nikolay Bogoychev in :issue:`16099`.)
+
+
+zipfile
+-------
+
+A new :meth:`ZipInfo.from_file() <zipfile.ZipInfo.from_file>` class method
+allows making a :class:`~zipfile.ZipInfo` instance from a filesystem file.
+A new :meth:`ZipInfo.is_dir() <zipfile.ZipInfo.is_dir>` method can be used
+to check if the :class:`~zipfile.ZipInfo` instance represents a directory.
+(Contributed by Thomas Kluyver in :issue:`26039`.)
+
+
+zlib
+----
+
+The :func:`~zlib.compress` function now accepts keyword arguments.
+(Contributed by Aviv Palivoda in :issue:`26243`.)
 
 
 Optimizations
@@ -215,6 +261,14 @@ Deprecated features
   ``__path__`` from the calling module when ``__spec__`` or
   ``__package__`` are not defined now raises an :exc:`ImportWarning`.
   (Contributed by Rose Ames in :issue:`25791`.)
+
+
+Deprecated Python behavior
+--------------------------
+
+* Raising the :exc:`StopIteration` exception inside a generator will now generate a
+  :exc:`DeprecationWarning`, and will trigger a :exc:`RuntimeError` in Python 3.7.
+  See :ref:`whatsnew-pep-479` for details.
 
 
 Removed
