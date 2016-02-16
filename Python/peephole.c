@@ -130,7 +130,7 @@ write_op_arg(unsigned char *codestr, unsigned char op, int oparg, int ilen)
 }
 
 /* Given the index of the effective opcode,
-    scan back to construct the oparg with EXTENEDED_ARG */
+    scan back to construct the oparg with EXTENDED_ARG */
 static int get_arg(unsigned char *codestr, Py_ssize_t i)
 {
     int oparg = codestr[i+1];
