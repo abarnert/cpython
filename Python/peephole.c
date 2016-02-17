@@ -16,7 +16,7 @@
     || op==POP_JUMP_IF_FALSE || op==POP_JUMP_IF_TRUE \
     || op==JUMP_IF_FALSE_OR_POP || op==JUMP_IF_TRUE_OR_POP)
 #define JUMPS_ON_TRUE(op) (op==POP_JUMP_IF_TRUE || op==JUMP_IF_TRUE_OR_POP)
-#define GETJUMPTGT(arr, i) (get_arg(arr,i) + (ABSOLUTE_JUMP(arr[i]) ? 0 : i+2))
+#define GETJUMPTGT(arr, i) (get_arg(arr, i) + (ABSOLUTE_JUMP(arr[i]) ? 0 : i+2))
 #define ISBASICBLOCK(blocks, start, end) \
     (blocks[start]==blocks[end])
 
@@ -710,20 +710,20 @@ PyCode_Optimize(PyObject *code, PyObject* consts, PyObject *names,
                 /* Replace JUMP_* to a RETURN into just a RETURN */
                 if (UNCONDITIONAL_JUMP(opcode) &&
                     codestr[tgt] == RETURN_VALUE) {
-                    copy_op_arg(codestr, opcode_start, RETURN_VALUE, 0, i+2);
-                    break;
+                    codestr[opcode_start] = RETURN_VALUE;
+                    codestr[opcode_start + 1] = 0;
+                    memset(codestr + opcode_start + 2, NOP, i - opcode_start);
+                } else if (UNCONDITIONAL_JUMP(codestr[tgt])) {
+                    j = GETJUMPTGT(codestr, tgt);
+                    if (opcode == JUMP_FORWARD) { /* JMP_ABS can go backwards */
+                        opcode = JUMP_ABSOLUTE;
+                    } else if (!ABSOLUTE_JUMP(opcode)) {
+                        j -= i + 2;          /* Calc relative jump addr */
+                        if (j < 0)           /* No backward relative jumps */
+                            break;
+                    }
+                    copy_op_arg(codestr, opcode_start, opcode, j, i+2);
                 }
-                if (!UNCONDITIONAL_JUMP(codestr[tgt]))
-                    break;
-                j = GETJUMPTGT(codestr, tgt);
-                if (opcode == JUMP_FORWARD) { /* JMP_ABS can go backwards */
-                    opcode = JUMP_ABSOLUTE;
-                } else if (!ABSOLUTE_JUMP(opcode)) {
-                    j -= i + 2;          /* Calc relative jump addr */
-                    if (j < 0)           /* No backward relative jumps */
-                        break;
-                }
-                copy_op_arg(codestr, opcode_start, opcode, j, i+2);
                 break;
 
                 /* Remove unreachable ops after RETURN */
