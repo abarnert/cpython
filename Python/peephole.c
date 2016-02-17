@@ -557,10 +557,11 @@ PyCode_Optimize(PyObject *code, PyObject* consts, PyObject *names,
                     if ((opcode == BUILD_TUPLE &&
                           ISBASICBLOCK(blocks, h, i)) ||
                          ((opcode == BUILD_LIST || opcode == BUILD_SET) &&
-                          nextop==COMPARE_OP &&
                           ISBASICBLOCK(blocks, h, nexti) &&
+                          ((nextop==COMPARE_OP &&
                           (codestr[nexti+1]==6 ||
-                           codestr[nexti+1]==7))) {
+                           codestr[nexti+1]==7)) ||
+                          nextop == GET_ITER))) {
                         h = fold_tuple_on_constants(codestr, h, i+2, opcode, consts, CONST_STACK_LASTN(j), j);
                         if (h >= 0) {
                             CONST_STACK_POP(j);
