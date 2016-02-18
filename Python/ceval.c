@@ -1044,12 +1044,10 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 #define TOP()             (stack_pointer[-1])
 #define SECOND()          (stack_pointer[-2])
 #define THIRD()           (stack_pointer[-3])
-#define FOURTH()          (stack_pointer[-4])
 #define PEEK(n)           (stack_pointer[-(n)])
 #define SET_TOP(v)        (stack_pointer[-1] = (v))
 #define SET_SECOND(v)     (stack_pointer[-2] = (v))
 #define SET_THIRD(v)      (stack_pointer[-3] = (v))
-#define SET_FOURTH(v)     (stack_pointer[-4] = (v))
 #define SET_VALUE(n, v)   (stack_pointer[-(n)] = (v))
 #define BASIC_STACKADJ(n) (stack_pointer += n)
 #define BASIC_PUSH(v)     (*stack_pointer++ = (v))
@@ -1096,7 +1094,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
     }
 
 #define UNWIND_EXCEPT_HANDLER(b) \
-    { \
+    do { \
         PyObject *type, *value, *traceback; \
         assert(STACK_LEVEL() >= (b)->b_level + 3); \
         while (STACK_LEVEL() > (b)->b_level + 3) { \
@@ -1112,7 +1110,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
         Py_XDECREF(type); \
         Py_XDECREF(value); \
         Py_XDECREF(traceback); \
-    }
+    } while(0)
 
 /* Start of code */
 
@@ -3115,7 +3113,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                 PyTryBlock *block;
                 val = SECOND();
                 tb = THIRD();
-                tp2 = FOURTH();
+                tp2 = PEEK(4);
                 exc2 = PEEK(5);
                 tb2 = PEEK(6);
                 exit_func = PEEK(7);
@@ -3123,7 +3121,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                 SET_VALUE(6, exc2);
                 SET_VALUE(5, tp2);
                 /* UNWIND_EXCEPT_HANDLER will pop this off. */
-                SET_FOURTH(NULL);
+                SET_VALUE(4, NULL);
                 /* We just shifted the stack down, so we have
                    to tell the except handler block that the
                    values are lower than it expects. */

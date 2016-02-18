@@ -82,6 +82,7 @@ static Py_ssize_t lastn_const_start(unsigned char *codestr, Py_ssize_t i, Py_ssi
                 }
                 return i;
             }
+        } else {
             assert(codestr[i] == NOP || codestr[i] == EXTENDED_ARG);
         }
     }
@@ -469,24 +470,14 @@ PyCode_Optimize(PyObject *code, PyObject* consts, PyObject *names,
     codestr = (unsigned char *)memcpy(codestr,
                                       PyBytes_AS_STRING(code), codelen);
 
-    /* Verify that RETURN_VALUE terminates the codestring. This allows
-       the various transformation patterns to look ahead several
-       instructions without additional checks to make sure they are not
-       looking beyond the end of the code string.
-    */
-    if (codestr[codelen-2] != RETURN_VALUE)
-        goto exitUnchanged;
-
     blocks = markblocks(codestr, codelen);
     if (blocks == NULL)
         goto exitError;
     assert(PyList_Check(consts));
 
     CONST_STACK_CREATE();
-    //goto skipthru;
 
     for (i=0 ; i<codelen ; i=nexti) {
-      reoptimize_current:
         opcode = codestr[i];
         opcode_start = i;
         while (opcode_start >= 2 && codestr[opcode_start-2] == EXTENDED_ARG) {
@@ -557,11 +548,10 @@ PyCode_Optimize(PyObject *code, PyObject* consts, PyObject *names,
                     if ((opcode == BUILD_TUPLE &&
                           ISBASICBLOCK(blocks, h, i)) ||
                          ((opcode == BUILD_LIST || opcode == BUILD_SET) &&
-                          ISBASICBLOCK(blocks, h, nexti) &&
                           ((nextop==COMPARE_OP &&
                           (codestr[nexti+1]==6 ||
                            codestr[nexti+1]==7)) ||
-                          nextop == GET_ITER))) {
+                          nextop == GET_ITER) && ISBASICBLOCK(blocks, h, nexti))) {
                         h = fold_tuple_on_constants(codestr, h, i+2, opcode, consts, CONST_STACK_LASTN(j), j);
                         if (h >= 0) {
                             CONST_STACK_POP(j);
@@ -663,16 +653,10 @@ PyCode_Optimize(PyObject *code, PyObject* consts, PyObject *names,
                        absolute! */
                     if (JUMPS_ON_TRUE(j) == JUMPS_ON_TRUE(opcode)) {
                         /* The second jump will be
-                           taken iff the first is */
-                        h = get_arg(codestr, tgt);
-                        /* The current opcode inherits
+                           taken iff the first is.
+                           The current opcode inherits
                            its target's stack effect */
-                        h = set_arg(codestr, i, h);
-                        if (h >= 0) {
-                            i = h;
-                            codestr[i] = j;
-                            goto reoptimize_current;
-                        }
+                        h = set_arg(codestr, i, get_arg(codestr, tgt));
                     } else {
                         /* The second jump is not taken
                            if the first is (so jump past
@@ -682,14 +666,13 @@ PyCode_Optimize(PyObject *code, PyObject* consts, PyObject *names,
                            the first jump to pop its
                            argument when it's taken). */
                         h = set_arg(codestr, i, tgt + 2);
-                        if (h >= 0) {
-                            i = h;
-                            if (opcode == JUMP_IF_TRUE_OR_POP)
-                                codestr[i] = POP_JUMP_IF_TRUE;
-                            else
-                                codestr[i] = POP_JUMP_IF_FALSE;
-                            goto reoptimize_current;
-                        }
+                        j = opcode == JUMP_IF_TRUE_OR_POP ? POP_JUMP_IF_TRUE : POP_JUMP_IF_FALSE;
+                    }
+
+                    if (h >= 0) {
+                        nexti = h;
+                        codestr[nexti] = j;
+                        break;
                     }
                 }
                 /* Intentional fallthrough */

@@ -4627,7 +4627,7 @@ assemble_jump_offsets(struct assembler *a, struct compiler *c)
 
         The issue is that in the first loop blocksize() is called
         which calls instrsize() which requires i_oparg be set
-        appropriately.          There is a bootstrap problem because
+        appropriately. There is a bootstrap problem because
         i_oparg is calculated in the second loop above.
 
         So we loop until we stop seeing new EXTENDED_ARGs.
