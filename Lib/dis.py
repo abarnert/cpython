@@ -285,23 +285,26 @@ def _get_instructions_bytes(code, varnames=None, names=None, constants=None,
     labels = set(findlabels(code))
     extended_arg = 0
     starts_line = None
+    starts_instruction = True
     free = None
     for i in range(0, len(code), 2):
         op = code[i]
-        if extended_arg == 0:
+        if starts_instruction:
             offset = i
+            is_jump_target = i in labels
         if linestarts is not None:
             starts_line = linestarts.get(i, None)
             if starts_line is not None:
                 starts_line += line_offset
-        is_jump_target = i in labels
         argrepr = ''
         argval = arg = code[i+1] + extended_arg
         if op == EXTENDED_ARG:
             extended_arg = arg << 8
+            starts_instruction = False
             continue
         else:
             extended_arg = 0
+            starts_instruction = True
         #  Set argval to the dereferenced value of the argument when
         #  available, and argrepr to the string representation of argval.
         #    _disassemble_bytes needs the string repr of the
