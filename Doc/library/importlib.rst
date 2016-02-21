@@ -1281,7 +1281,8 @@ an :term:`importer`.
    :meth:`~importlib.abc.Loader.exec_module` as control over what module type
    is used for the module is required. For those same reasons, the loader's
    :meth:`~importlib.abc.Loader.create_module` method will be ignored (i.e., the
-   loader's method should only return ``None``). Finally,
+   loader's method should only return ``None``; this excludes
+   :class:`BuiltinImporter` and :class:`ExtensionFileLoader`). Finally,
    modules which substitute the object placed into :attr:`sys.modules` will
    not work as there is no way to properly replace the module references
    throughout the interpreter safely; :exc:`ValueError` is raised if such a
@@ -1388,7 +1389,7 @@ Python 3.6 and newer for other parts of the code).
               break
       else:
           raise ImportError(f'No module named {absolute_name!r}')
-      module = spec.loader.create_module(spec)
+      module = importlib.util.module_from_spec(spec)
       spec.loader.exec_module(module)
       sys.modules[absolute_name] = module
       if path is not None:

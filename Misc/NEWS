@@ -186,9 +186,21 @@ Core and Builtins
 Library
 -------
 
+Issue #26186: Remove an invalid type check in importlib.util.LazyLoader.
+
+- Issue #26367: importlib.__init__() raises ImportError like
+  builtins.__import__() when ``level`` is specified but without an accompanying
+  package specified.
+
 - Issue #26309: In the "socketserver" module, shut down the request (closing
   the connected socket) when verify_request() returns false.  Patch by Aviv
   Palivoda.
+
+- Issue #23430: Change the socketserver module to only catch exceptions
+  raised from a request handler that are derived from Exception (instead of
+  BaseException).  Therefore SystemExit and KeyboardInterrupt no longer
+  trigger the handle_error() method, and will now to stop a single-threaded
+  server.
 
 - Issue #25939: On Windows open the cert store readonly in ssl.enum_certificates.
 
