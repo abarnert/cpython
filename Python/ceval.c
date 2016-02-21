@@ -891,16 +891,14 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 #define TARGET_WITH_IMPL(op, impl) \
     TARGET_##op: \
         opcode = op; \
-        if (HAS_ARG(op)) \
-            oparg = NEXTARG(); \
+        oparg = NEXTARG(); \
     case op: \
         goto impl; \
 
 #define TARGET(op) \
     TARGET_##op: \
         opcode = op; \
-        if (HAS_ARG(op)) \
-            oparg = NEXTARG(); \
+        oparg = NEXTARG(); \
     case op:
 
 
@@ -1012,10 +1010,10 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
     processor's own internal branch predication has a high likelihood of
     success, resulting in a nearly zero-overhead transition to the
     next opcode.  A successful prediction saves a trip through the eval-loop
-    including its two unpredictable branches, the HAS_ARG test and the
-    switch-case.  Combined with the processor's internal branch prediction,
-    a successful PREDICT has the effect of making the two opcodes run as if
-    they were a single new opcode with the bodies combined.
+    including its unpredictable switch-case branch.  Combined with the
+    processor's internal branch prediction, a successful PREDICT has the
+    effect of making the two opcodes run as if they were a single new opcode
+    with the bodies combined.
 
     If collecting opcode statistics, your choices are to either keep the
     predictions turned-on and interpret the results as if some opcodes
@@ -1031,11 +1029,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 #if defined(DYNAMIC_EXECUTION_PROFILE) || USE_COMPUTED_GOTOS
 #define PREDICT(op)             if (0) goto PRED_##op
 #define PREDICTED(op)           PRED_##op:
-#define PREDICTED_WITH_ARG(op)  PRED_##op:
 #else
 #define PREDICT(op)             if (*next_instr == op) goto PRED_##op
-#define PREDICTED(op)           PRED_##op: next_instr += 2
-#define PREDICTED_WITH_ARG(op)  PRED_##op: oparg = PEEKARG(); next_instr += 2
+#define PREDICTED(op)           PRED_##op: oparg = PEEKARG(); next_instr += 2
 #endif
 
 
@@ -1048,12 +1044,10 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 #define TOP()             (stack_pointer[-1])
 #define SECOND()          (stack_pointer[-2])
 #define THIRD()           (stack_pointer[-3])
-#define FOURTH()          (stack_pointer[-4])
 #define PEEK(n)           (stack_pointer[-(n)])
 #define SET_TOP(v)        (stack_pointer[-1] = (v))
 #define SET_SECOND(v)     (stack_pointer[-2] = (v))
 #define SET_THIRD(v)      (stack_pointer[-3] = (v))
-#define SET_FOURTH(v)     (stack_pointer[-4] = (v))
 #define SET_VALUE(n, v)   (stack_pointer[-(n)] = (v))
 #define BASIC_STACKADJ(n) (stack_pointer += n)
 #define BASIC_PUSH(v)     (*stack_pointer++ = (v))
@@ -1100,7 +1094,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
     }
 
 #define UNWIND_EXCEPT_HANDLER(b) \
-    { \
+    do { \
         PyObject *type, *value, *traceback; \
         assert(STACK_LEVEL() >= (b)->b_level + 3); \
         while (STACK_LEVEL() > (b)->b_level + 3) { \
@@ -1116,7 +1110,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
         Py_XDECREF(type); \
         Py_XDECREF(value); \
         Py_XDECREF(traceback); \
-    }
+    } while(0)
 
 /* Start of code */
 
@@ -1337,14 +1331,8 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
         /* Instruction tracing */
 
         if (lltrace) {
-            if (HAS_ARG(opcode)) {
-                printf("%d: %d, %d\n",
-                       f->f_lasti, opcode, oparg);
-            }
-            else {
-                printf("%d: %d\n",
-                       f->f_lasti, opcode);
-            }
+            printf("%d: %d, %d\n",
+                   f->f_lasti, opcode, oparg);
         }
 #endif
 
@@ -1381,7 +1369,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             FAST_DISPATCH();
         }
 
-        PREDICTED_WITH_ARG(STORE_FAST);
+        PREDICTED(STORE_FAST);
         TARGET(STORE_FAST) {
             PyObject *value = POP();
             SETLOCAL(oparg, value);
@@ -2195,7 +2183,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             DISPATCH();
         }
 
-        PREDICTED_WITH_ARG(UNPACK_SEQUENCE);
+        PREDICTED(UNPACK_SEQUENCE);
         TARGET(UNPACK_SEQUENCE) {
             PyObject *seq = POP(), *item, **items;
             if (PyTuple_CheckExact(seq) &&
@@ -2801,7 +2789,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             FAST_DISPATCH();
         }
 
-        PREDICTED_WITH_ARG(POP_JUMP_IF_FALSE);
+        PREDICTED(POP_JUMP_IF_FALSE);
         TARGET(POP_JUMP_IF_FALSE) {
             PyObject *cond = POP();
             int err;
@@ -2825,7 +2813,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             DISPATCH();
         }
 
-        PREDICTED_WITH_ARG(POP_JUMP_IF_TRUE);
+        PREDICTED(POP_JUMP_IF_TRUE);
         TARGET(POP_JUMP_IF_TRUE) {
             PyObject *cond = POP();
             int err;
@@ -2902,7 +2890,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             DISPATCH();
         }
 
-        PREDICTED_WITH_ARG(JUMP_ABSOLUTE);
+        PREDICTED(JUMP_ABSOLUTE);
         TARGET(JUMP_ABSOLUTE) {
             JUMPTO(oparg);
 #if FAST_LOOPS
@@ -2959,7 +2947,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             DISPATCH();
         }
 
-        PREDICTED_WITH_ARG(FOR_ITER);
+        PREDICTED(FOR_ITER);
         TARGET(FOR_ITER) {
             /* before: [iter]; after: [iter, iter()] *or* [] */
             PyObject *iter = TOP();
@@ -3125,7 +3113,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                 PyTryBlock *block;
                 val = SECOND();
                 tb = THIRD();
-                tp2 = FOURTH();
+                tp2 = PEEK(4);
                 exc2 = PEEK(5);
                 tb2 = PEEK(6);
                 exit_func = PEEK(7);
@@ -3133,7 +3121,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                 SET_VALUE(6, exc2);
                 SET_VALUE(5, tp2);
                 /* UNWIND_EXCEPT_HANDLER will pop this off. */
-                SET_FOURTH(NULL);
+                SET_VALUE(4, NULL);
                 /* We just shifted the stack down, so we have
                    to tell the except handler block that the
                    values are lower than it expects. */
@@ -3380,7 +3368,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             int have_fmt_spec = (oparg & FVS_MASK) == FVS_HAVE_SPEC;
 
             fmt_spec = have_fmt_spec ? POP() : NULL;
-            value = TOP();
+            value = POP();
 
             /* See if any conversion is specified. */
             switch (which_conversion) {
@@ -3396,10 +3384,10 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
             /* If there's a conversion function, call it and replace
                value with that result. Otherwise, just use value,
                without conversion. */
-            if (conv_fn) {
+            if (conv_fn != NULL) {
                 result = conv_fn(value);
                 Py_DECREF(value);
-                if (!result) {
+                if (result == NULL) {
                     Py_XDECREF(fmt_spec);
                     goto error;
                 }
@@ -3419,11 +3407,12 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
                 result = PyObject_Format(value, fmt_spec);
                 Py_DECREF(value);
                 Py_XDECREF(fmt_spec);
-                if (!result)
+                if (result == NULL) {
                     goto error;
+                }
             }
 
-            SET_TOP(result);
+            PUSH(result);
             DISPATCH();
         }
 

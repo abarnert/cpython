@@ -24,20 +24,14 @@ _opcode_stack_effect_impl(PyModuleDef *module, int opcode, PyObject *oparg)
 /*[clinic end generated code: output=1fcafd5596c6b050 input=2d0a9ee53c0418f5]*/
 {
     int effect;
-    int oparg_int = 0;
-    if (HAS_ARG(opcode)) {
-        if (oparg == Py_None) {
-            PyErr_SetString(PyExc_ValueError,
-                    "stack_effect: opcode requires oparg but oparg was not specified");
-            return -1;
-        }
-        oparg_int = (int)PyLong_AsLong(oparg);
-        if ((oparg_int == -1) && PyErr_Occurred())
-            return -1;
-    }
-    else if (oparg != Py_None) {
+    int oparg_int;
+    if (oparg == Py_None) {
         PyErr_SetString(PyExc_ValueError,
-                "stack_effect: opcode does not permit oparg but oparg was specified");
+                "stack_effect: opcode requires oparg but oparg was not specified");
+        return -1;
+    }
+    oparg_int = (int)PyLong_AsLong(oparg);
+    if ((oparg_int == -1) && PyErr_Occurred()) {
         return -1;
     }
     effect = PyCompile_OpcodeStackEffect(opcode, oparg_int);

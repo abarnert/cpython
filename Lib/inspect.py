@@ -1560,7 +1560,7 @@ def getgeneratorstate(generator):
         return GEN_RUNNING
     if generator.gi_frame is None:
         return GEN_CLOSED
-    if generator.gi_frame.f_lasti == -1:
+    if generator.gi_frame.f_lasti < 0:
         return GEN_CREATED
     return GEN_SUSPENDED
 
@@ -1602,7 +1602,7 @@ def getcoroutinestate(coroutine):
         return CORO_RUNNING
     if coroutine.cr_frame is None:
         return CORO_CLOSED
-    if coroutine.cr_frame.f_lasti == -1:
+    if coroutine.cr_frame.f_lasti < 0:
         return CORO_CREATED
     return CORO_SUSPENDED
 

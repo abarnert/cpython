@@ -26,8 +26,6 @@ enum cmp_op {PyCmp_LT=Py_LT, PyCmp_LE=Py_LE, PyCmp_EQ=Py_EQ, PyCmp_NE=Py_NE,
                 PyCmp_GT=Py_GT, PyCmp_GE=Py_GE, PyCmp_IN, PyCmp_NOT_IN,
                 PyCmp_IS, PyCmp_IS_NOT, PyCmp_EXC_MATCH, PyCmp_BAD};
 
-#define HAS_ARG(op) ((op) >= HAVE_ARGUMENT)
-
 #ifdef __cplusplus
 }
 #endif
@@ -44,9 +42,6 @@ def main(opcode_py, outfile='Include/opcode.h'):
         for name in opcode['opname']:
             if name in opmap:
                 fobj.write("#define %-23s %3s\n" % (name, opmap[name]))
-            if name == 'POP_EXCEPT': # Special entry for HAVE_ARGUMENT
-                fobj.write("#define %-23s %3d\n" %
-                            ('HAVE_ARGUMENT', opcode['HAVE_ARGUMENT']))
         fobj.write(footer)
 
 

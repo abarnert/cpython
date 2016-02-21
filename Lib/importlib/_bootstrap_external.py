@@ -593,7 +593,7 @@ class WindowsRegistryFinder:
         else:
             registry_key = cls.REGISTRY_KEY
         key = registry_key.format(fullname=fullname,
-                                  sys_version=sys.version[:3])
+                                  sys_version='%d.%d' % sys.version_info[:2])
         try:
             with cls._open_registry(key) as hkey:
                 filepath = _winreg.QueryValue(hkey, '')
@@ -1310,15 +1310,10 @@ class FileFinder:
 
 def _fix_up_module(ns, name, pathname, cpathname=None):
     # This function is used by PyImport_ExecCodeModuleObject().
-    loader = ns.get('__loader__')
     spec = ns.get('__spec__')
-    if not loader:
-        if spec:
-            loader = spec.loader
-        elif pathname == cpathname:
-            loader = SourcelessFileLoader(name, pathname)
-        else:
-            loader = SourceFileLoader(name, pathname)
+    loader = ns.get('__loader__') or (spec.loader if spec else
+            SourcelessFileLoader(name, pathname) if pathname == cpathname else
+            SourceFileLoader(name, pathname))
     if not spec:
         spec = spec_from_file_location(name, pathname, loader=loader)
     try:
@@ -1364,7 +1359,7 @@ def _setup(_bootstrap_module):
         setattr(self_module, builtin_name, builtin_module)
 
     # Directly load the os module (needed during bootstrap).
-    os_details = ('posix', ['/']), ('nt', ['\\', '/'])
+    os_details = ('posix', ('/',)), ('nt', ('\\', '/'))
     for builtin_os, path_separators in os_details:
         # Assumption made in _path_join()
         assert all(len(sep) == 1 for sep in path_separators)
@@ -1414,7 +1409,7 @@ def _install(_bootstrap_module):
     """Install the path-based import components."""
     _setup(_bootstrap_module)
     supported_loaders = _get_supported_file_loaders()
-    sys.path_hooks.extend([FileFinder.path_hook(*supported_loaders)])
+    sys.path_hooks.append(FileFinder.path_hook(*supported_loaders))
     if _os.__name__ == 'nt':
         sys.meta_path.append(WindowsRegistryFinder)
     sys.meta_path.append(PathFinder)

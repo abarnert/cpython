@@ -10,6 +10,15 @@ Release date: tba
 Core and Builtins
 -----------------
 
+- Issue #26136: Upgrade the warning when a generator raises StopIteration
+  from PendingDeprecationWarning to DeprecationWarning.  Patch by Anish
+  Shah.
+
+- Issue #26204: The compiler now ignores all constant statements: bytes, str,
+  int, float, complex, name constants (None, False, True), Ellipsis
+  and ast.Constant; not only str and int. For example, ``1.0`` is now ignored
+  in ``def f(): 1.0``.
+
 - Issue #4806: Avoid masking the original TypeError exception when using star
   (*) unpacking in function calls.  Based on patch by Hagen Fürstenau and
   Daniel Urban.
@@ -165,9 +174,62 @@ Core and Builtins
 
 - Issue #25660: Fix TAB key behaviour in REPL with readline.
 
+- Issue #26288: Optimize PyLong_AsDouble.
+
+- Issues #26289 and #26315: Optimize floor and modulo division for
+  single-digit longs.  Microbenchmarks show 2-2.5x improvement.  Built-in
+  'divmod' function is now also ~10% faster.
+
+- Issue #25887: Raise a RuntimeError when a coroutine object is awaited
+  more than once.
 
 Library
 -------
+
+Issue #26186: Remove an invalid type check in importlib.util.LazyLoader.
+
+- Issue #26367: importlib.__init__() raises ImportError like
+  builtins.__import__() when ``level`` is specified but without an accompanying
+  package specified.
+
+- Issue #26309: In the "socketserver" module, shut down the request (closing
+  the connected socket) when verify_request() returns false.  Patch by Aviv
+  Palivoda.
+
+- Issue #23430: Change the socketserver module to only catch exceptions
+  raised from a request handler that are derived from Exception (instead of
+  BaseException).  Therefore SystemExit and KeyboardInterrupt no longer
+  trigger the handle_error() method, and will now to stop a single-threaded
+  server.
+
+- Issue #25939: On Windows open the cert store readonly in ssl.enum_certificates.
+
+- Issue #25995: os.walk() no longer uses FDs proportional to the tree depth.
+
+- Issue #25994: Added the close() method and the support of the context manager
+  protocol for the os.scandir() iterator.
+
+- Issue #23992: multiprocessing: make MapResult not fail-fast upon exception.
+
+- Issue #26243: Support keyword arguments to zlib.compress().  Patch by Aviv
+  Palivoda.
+
+- Issue #26117: The os.scandir() iterator now closes file descriptor not only
+  when the iteration is finished, but when it was failed with error.
+
+- Issue #25949: __dict__ for an OrderedDict instance is now created only when
+  needed.
+
+- Issue #25911: Restored support of bytes paths in os.walk() on Windows.
+
+- Issue #26045: Add UTF-8 suggestion to error message when posting a
+  non-Latin-1 string with http.client.
+
+- Issue #26039: Added zipfile.ZipInfo.from_file() and zipinfo.ZipInfo.is_dir().
+  Patch by Thomas Kluyver.
+
+- Issue #12923: Reset FancyURLopener's redirect counter even if there is an
+  exception.  Based on patches by Brian Brazil and Daniel Rocco.
 
 - Issue #25945: Fixed a crash when unpickle the functools.partial object with
   wrong state.  Fixed a leak in failed functools.partial constructor.
@@ -535,6 +597,9 @@ Library
 - Issue #26050: Add asyncio.StreamReader.readuntil() method.
   Patch by Марк Коренберг.
 
+- Issue #25924: Avoid unnecessary serialization of getaddrinfo(3) calls on
+  OS X versions 10.5 or higher.  Original patch by A. Jesse Jiryu Davis.
+
 IDLE
 ----
 
@@ -641,6 +706,9 @@ Documentation
 Tests
 -----
 
+- Issue #26325: Added test.support.check_no_resource_warning() to check that
+  no ResourceWarning is emitted.
+
 - Issue #25940: Changed test_ssl to use self-signed.pythontest.net.  This
   avoids relying on svn.python.org, which recently changed root certificate.
 
@@ -683,7 +751,7 @@ Build
   Previously it could fail to compile properly if the math and cmath builds
   were concurrent.
 
-- Issue #25798: Update OS X 10.5 installer to use OpenSSL 1.0.2e.
+- Issue #26268: Update OS X 10.5 installer to use OpenSSL 1.0.2f.
 
 Windows
 -------
@@ -701,10 +769,23 @@ Windows
 Tools/Demos
 -----------
 
+- Issue #26316: Fix variable name typo in Argument Clinic.
+
 - Issue #25440: Fix output of python-config --extension-suffix.
 
 - Issue #25154: The pyvenv script has been deprecated in favour of
   `python3 -m venv`.
+
+C API
+-----
+
+- Issue #26312: SystemError is now raised in all programming bugs with using
+  PyArg_ParseTupleAndKeywords().  RuntimeError did raised before in some
+  programming bugs.
+
+- Issue #26198: ValueError is now raised instead of TypeError on buffer
+  overflow in parsing "es#" and "et#" format units.  SystemError is now raised
+  instead of TypeError on programmical error in parsing format string.
 
 
 What's New in Python 3.5.1 final?
@@ -2187,8 +2268,8 @@ Library
   and ASCII letter now raise a deprecation warning and will be forbidden in
   Python 3.6.
 
-- Issue #23671: string.Template now allows to specify the "self" parameter as
-  keyword argument.  string.Formatter now allows to specify the "self" and
+- Issue #23671: string.Template now allows specifying the "self" parameter as
+  a keyword argument.  string.Formatter now allows specifying the "self" and
   the "format_string" parameters as keyword arguments.
 
 - Issue #23502: The pprint module now supports mapping proxies.
@@ -3317,7 +3398,7 @@ Library
 - Issue #22085: Dropped support of Tk 8.3 in Tkinter.
 
 - Issue #21580: Now Tkinter correctly handles bytes arguments passed to Tk.
-  In particular this allows to initialize images from binary data.
+  In particular this allows initializing images from binary data.
 
 - Issue #22003: When initialized from a bytes object, io.BytesIO() now
   defers making a copy until it is mutated, improving performance and
@@ -3462,7 +3543,7 @@ Library
 - Issue #21711: support for "site-python" directories has now been removed
   from the site module (it was deprecated in 3.4).
 
-- Issue #17552: new socket.sendfile() method allowing to send a file over a
+- Issue #17552: new socket.sendfile() method allowing a file to be sent over a
   socket by using high-performance os.sendfile() on UNIX.
   Patch by Giampaolo Rodola'.
 
@@ -3906,7 +3987,7 @@ IDLE
   move version to end.
 
 - Issue #14105: Idle debugger breakpoints no longer disappear
-  when inseting or deleting lines.
+  when inserting or deleting lines.
 
 - Issue #17172: Turtledemo can now be run from Idle.
   Currently, the entry is on the Help menu, but it may move to Run.
@@ -7425,7 +7506,7 @@ Library
   symlinks on POSIX platforms.
 
 - Issue #13773: sqlite3.connect() gets a new `uri` parameter to pass the
-  filename as a URI, allowing to pass custom options.
+  filename as a URI, allowing custom options to be passed.
 
 - Issue #16564: Fixed regression relative to Python2 in the operation of
   email.encoders.encode_noop when used with binary data.
@@ -7686,7 +7767,7 @@ Library
 - Issue #7719: Make distutils ignore ``.nfs*`` files instead of choking later
   on.  Initial patch by SilentGhost and Jeff Ramnani.
 
-- Issue #13120: Allow to call pdb.set_trace() from thread.
+- Issue #13120: Allow calling pdb.set_trace() from thread.
   Patch by Ilya Sandler.
 
 - Issue #16585: Make CJK encoders support error handlers that return bytes per

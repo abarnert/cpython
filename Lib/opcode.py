@@ -6,7 +6,7 @@ operate on bytecodes (e.g. peephole optimizers).
 
 __all__ = ["cmp_op", "hasconst", "hasname", "hasjrel", "hasjabs",
            "haslocal", "hascompare", "hasfree", "opname", "opmap",
-           "HAVE_ARGUMENT", "EXTENDED_ARG", "hasnargs"]
+           "EXTENDED_ARG", "hasnargs"]
 
 # It's a chicken-and-egg I'm afraid:
 # We're imported before _opcode's made.
@@ -34,9 +34,7 @@ hasfree = []
 hasnargs = []
 
 opmap = {}
-opname = [''] * 256
-for op in range(256): opname[op] = '<%r>' % (op,)
-del op
+opname = ['<%r>' % (op,) for op in range(256)]
 
 def def_op(name, op):
     opname[op] = name
@@ -126,8 +124,6 @@ def_op('YIELD_VALUE', 86)
 def_op('POP_BLOCK', 87)
 def_op('END_FINALLY', 88)
 def_op('POP_EXCEPT', 89)
-
-HAVE_ARGUMENT = 90              # Opcodes from here have an argument:
 
 name_op('STORE_NAME', 90)       # Index in name list
 name_op('DELETE_NAME', 91)      # ""
